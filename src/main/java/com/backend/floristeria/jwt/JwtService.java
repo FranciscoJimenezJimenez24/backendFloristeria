@@ -27,7 +27,7 @@ public class JwtService {
 
 	@Value("${application.security.jwt.secret-key}")
     private String secret_key;
-    private static final long REFRESH_TOKEN_VALIDITY = 3600;
+    private static final long REFRESH_TOKEN_VALIDITY = 360000000;
     
     @Value("${jwt.token.expiration.minutes}")
     private int tokenExpirationMinutes;

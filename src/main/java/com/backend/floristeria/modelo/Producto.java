@@ -1,6 +1,7 @@
 package com.backend.floristeria.modelo;
 
 import java.io.Serializable;
+import java.sql.Blob;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

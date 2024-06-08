@@ -24,50 +24,48 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1")
 @CrossOrigin(origins = {"http://localhost:4200"})
 public class CategoriaController {
-	
-	private final CategoriaRepositorio categoriaRepositorio;
-	
-	@GetMapping("/categoria")
-	public ResponseEntity<?> getCategorias(){
-		List<Categoria> result=categoriaRepositorio.findAll();
-		
-		if (result.isEmpty()) {
-			return ResponseEntity.notFound().build();
-		}else {
-			return ResponseEntity.ok(result);
-		}
-	}
-	
-	
-	@GetMapping("/categoria/{id}")
-	public ResponseEntity<?> obtenerUno(@PathVariable Long id) {
-		Categoria result = categoriaRepositorio.findById(id).orElse(null);
-		if (result == null)
-			return ResponseEntity.notFound().build();
-		else
-			return ResponseEntity.ok(result);
-	}
-	
-	@PostMapping("/categoria")
-	public ResponseEntity<?> nuevoCategoria(@RequestBody Categoria nuevo) {
-		Categoria saved = categoriaRepositorio.save(nuevo);
-		return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-	}
-	
-	@PutMapping("/categoria/{id}")
-	public ResponseEntity<?> editarCategoria(@RequestBody Categoria editar, @PathVariable Long id) {
-	    return categoriaRepositorio.findById(id).map((Categoria categoria) -> {
-	        categoria.setNombre(editar.getNombre());
-	        return ResponseEntity.ok(categoriaRepositorio.save(categoria));
-	    }).orElseGet(() -> {
-	        return ResponseEntity.notFound().build();
-	    });
-	}
-	
-	@DeleteMapping("/categoria/{id}")
-	public ResponseEntity<?> borrarCategoria(@PathVariable Long id) {
-		categoriaRepositorio.deleteById(id);
-		return ResponseEntity.noContent().build();
-	}
+    
+    private final CategoriaRepositorio categoriaRepositorio;
+    
+    @GetMapping("/categoria")
+    public ResponseEntity<?> getCategorias(){
+        List<Categoria> result = categoriaRepositorio.findAll();
+        
+        if (result.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.ok(result);
+        }
+    }
+    
+    
+    @GetMapping("/categoria/{id}")
+    public ResponseEntity<?> obtenerUno(@PathVariable Long id) {
+        return categoriaRepositorio.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
+    }
+    
+    @PostMapping("/categoria")
+    public ResponseEntity<?> nuevoCategoria(@RequestBody Categoria nuevo) {
+        Categoria saved = categoriaRepositorio.save(nuevo);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+    
+    @PutMapping("/categoria/{id}")
+    public ResponseEntity<?> editarCategoria(@RequestBody Categoria editar, @PathVariable Long id) {
+        return categoriaRepositorio.findById(id)
+                .map(categoria -> {
+                    categoria.setNombre(editar.getNombre());
+                    return ResponseEntity.ok(categoriaRepositorio.save(categoria));
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    @DeleteMapping("/categoria/{id}")
+    public ResponseEntity<?> borrarCategoria(@PathVariable Long id) {
+        categoriaRepositorio.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
 
 }

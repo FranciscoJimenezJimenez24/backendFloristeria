@@ -30,33 +30,22 @@ public class CarritoController {
     @GetMapping("/carrito")
     public ResponseEntity<?> getCarritos(){
         List<Carrito> result = carritoRepositorio.findAll();
-
-        if (result.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        } else {
-            return ResponseEntity.ok(result);
-        }
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/carrito/{id}")
     public ResponseEntity<?> obtenerUno(@PathVariable Long id) {
-        Carrito result = carritoRepositorio.findById(id).orElse(null);
-        if (result == null)
-            return ResponseEntity.notFound().build();
-        else
-            return ResponseEntity.ok(result);
+        return carritoRepositorio.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
     }
 
-    @GetMapping("/carrito/usuario/{userId}")
-	public ResponseEntity<?> obtenerCarritoPorUsuario(@PathVariable Long userId) {
-		List<Carrito> result = carritoRepositorio.findByUserId(userId);
-		if (result.isEmpty()) {
-			return ResponseEntity.notFound().build();
-		} else {
-			return ResponseEntity.ok(result);
-		}
-	}
 
+    @GetMapping("/carrito/usuario/{userId}")
+    public ResponseEntity<?> obtenerCarritoPorUsuario(@PathVariable Long userId) {
+        List<Carrito> result = carritoRepositorio.findByUserId(userId);
+        return ResponseEntity.ok(result);
+    }
 
     @PostMapping("/carrito")
     public ResponseEntity<?> nuevoCarrito(@RequestBody Carrito nuevo) {
@@ -66,22 +55,24 @@ public class CarritoController {
 
     @PutMapping("/carrito/{id}")
     public ResponseEntity<?> editarCarrito(@RequestBody Carrito editar, @PathVariable Long id) {
-    	return carritoRepositorio.findById(id).map((Carrito carrito) -> {
-    		System.out.println("Hola");
-            carrito.setUser(editar.getUser());
-            carrito.setProducto(editar.getProducto());
-            carrito.setNumProductos(editar.getNumProductos());
-            Carrito updatedCarrito = carritoRepositorio.save(carrito);
-            System.out.println("Carrito actualizado: " + updatedCarrito); // Añade esta línea
-            return ResponseEntity.ok(updatedCarrito);
-        }).orElseGet(() -> {
-            return ResponseEntity.notFound().build();
-        });
+        return carritoRepositorio.findById(id)
+                .map((Carrito carrito) -> {
+                    carrito.setUser(editar.getUser());
+                    carrito.setProducto(editar.getProducto());
+                    carrito.setNumProductos(editar.getNumProductos());
+                    Carrito updatedCarrito = carritoRepositorio.save(carrito);
+                    return ResponseEntity.ok(updatedCarrito);
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
     }
 
     @DeleteMapping("/carrito/{id}")
     public ResponseEntity<?> borrarCarrito(@PathVariable Long id) {
-        carritoRepositorio.deleteById(id);
-        return ResponseEntity.noContent().build();
+        if (carritoRepositorio.existsById(id)) {
+            carritoRepositorio.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Carrito no encontrado");
+        }
     }
 }

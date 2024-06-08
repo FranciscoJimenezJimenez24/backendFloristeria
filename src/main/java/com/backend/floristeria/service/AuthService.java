@@ -48,19 +48,51 @@ public class AuthService {
     }
 
 
-public AuthResponse register(RegisterRequest request) {
-    User user = User.builder()
-        .username(request.getUsername())
-        .password(passwordEncoder.encode(request.getPassword()))
-        .firstname(request.getFirstname()) 
-        .lastname(request.getLastname())
-        .country(request.getCountry())
-        .role(Rol.USER)
-        .build();
-    userRepository.save(user);
-
-    return AuthResponse.builder()
-            .token(jwtService.getToken(user))
-            .build();
-}
+    public AuthResponse register(RegisterRequest request) {
+	    User user = User.builder()
+	        .username(request.getUsername())
+	        .password(passwordEncoder.encode(request.getPassword()))
+	        .firstname(request.getFirstname()) 
+	        .lastname(request.getLastname())
+	        .country(request.getCountry())
+	        .role(Rol.USER)
+	        .build();
+	    userRepository.save(user);
+	
+	    return AuthResponse.builder()
+	            .token(jwtService.getToken(user))
+	            .build();
+	}
+    
+    public AuthResponse registerWorker(RegisterRequest request) {
+	    User user = User.builder()
+	        .username(request.getUsername())
+	        .password(passwordEncoder.encode(request.getPassword()))
+	        .firstname(request.getFirstname()) 
+	        .lastname(request.getLastname())
+	        .country(request.getCountry())
+	        .role(Rol.WORKER)
+	        .build();
+	    userRepository.save(user);
+	
+	    return AuthResponse.builder()
+	            .token(jwtService.getToken(user))
+	            .build();
+	}
+    
+    public AuthResponse registerADMIN(RegisterRequest request) {
+	    User user = User.builder()
+	        .username(request.getUsername())
+	        .password(passwordEncoder.encode(request.getPassword()))
+	        .firstname(request.getFirstname()) 
+	        .lastname(request.getLastname())
+	        .country(request.getCountry())
+	        .role(Rol.ADMIN)
+	        .build();
+	    userRepository.save(user);
+	
+	    return AuthResponse.builder()
+	            .token(jwtService.getToken(user))
+	            .build();
+	}
 }

@@ -1,7 +1,12 @@
 package com.backend.floristeria.controller;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,97 +15,102 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.backend.floristeria.modelo.Categoria;
 import com.backend.floristeria.modelo.CategoriaRepositorio;
 import com.backend.floristeria.modelo.Producto;
 import com.backend.floristeria.modelo.ProductoRepositorio;
+import com.backend.floristeria.service.FileStorageService;
 
+import jakarta.servlet.annotation.MultipartConfig;
 import lombok.RequiredArgsConstructor;
 
+@MultipartConfig
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
 @CrossOrigin(origins = "http://localhost:4200")
 public class ProductoController {
 
-	private final ProductoRepositorio productoRepositorio;
-	private final CategoriaRepositorio categoriaRepositorio;
+    private final ProductoRepositorio productoRepositorio;
+    private final CategoriaRepositorio categoriaRepositorio;
+    
+    @Autowired
+    private FileStorageService fileStorageService;
 
-	/**
-	 * Obtenemos todos los productos
-	 * 
-	 * @return
-	 */
-	@GetMapping("/producto")
-	public List<Producto> obtenerTodos() {
-		return productoRepositorio.findAll();
-	}
-	
-	@GetMapping("/producto/categoria/{idCategoria}")
-	public List<Producto> obtenerCategoria(@PathVariable Long idCategoria) {
-		return productoRepositorio.buscarPorIdCategoria(idCategoria);
-	}
+    @GetMapping("/producto")
+    public ResponseEntity<?> obtenerTodos() {
+        List<Producto> productos = productoRepositorio.findAll();
+        if (productos.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.ok(productos);
+        }
+    }
 
-	/**
-	 * Obtenemos un producto en base a su ID
-	 * 
-	 * @param id
-	 * @return Null si no encuentra el producto
-	 */
-	@GetMapping("/producto/{id}")
-	public Producto obtenerUno(@PathVariable Long id) {
-		return productoRepositorio.findById(id).orElse(null);
-	}
+    @GetMapping("/producto/categoria/{idCategoria}")
+    public ResponseEntity<?> obtenerCategoria(@PathVariable Long idCategoria) {
+        List<Producto> productos = productoRepositorio.buscarPorIdCategoria(idCategoria);
+        if (productos.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.ok(productos);
+        }
+    }
 
-	/**
-	 * Insertamos un nuevo producto
-	 * 
-	 * @param nuevo
-	 * @return producto insertado
-	 */
-	@PostMapping("/producto")
-	public Producto nuevoProducto(@RequestBody Producto nuevo) {
-		System.out.println("Método nuevoProducto() llamado con el siguiente Producto:");
-	    System.out.println(nuevo);
-	    if (nuevo.getCategoria() != null) {
-	        Categoria categoria = categoriaRepositorio.findById(nuevo.getCategoria().getId_categoria()).orElse(null);
-	        nuevo.setCategoria(categoria);
-	    }
-	    return productoRepositorio.save(nuevo);
-	}
+    @GetMapping("/producto/{id}")
+    public ResponseEntity<?> obtenerUno(@PathVariable Long id) {
+        return productoRepositorio.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(null));
+    }
 
+   @PostMapping("/producto/upload")
+    public ResponseEntity<?> handleFileUpload(@RequestParam("file") MultipartFile file) {
+    	System.out.println("hola");
+        fileStorageService.store(file);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "You successfully uploaded " + file.getOriginalFilename() + "!");
+        response.put("path", file.getOriginalFilename());  // Path to store in database
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 
-	/**
-	 * 
-	 * @param editar
-	 * @param id
-	 * @return
-	 */
-	@PutMapping("/producto/{id}")
-	public Producto editarProducto(@RequestBody Producto editar, @PathVariable Long id) {
-		if (productoRepositorio.existsById(id)) {
-			editar.setId_producto(id);
-			return productoRepositorio.save(editar);
-		} else {
-			return null;
-		}
-	}
+    @PostMapping("/producto")
+    public ResponseEntity<?> nuevoProducto(@RequestBody Producto nuevo) {
+        if (nuevo.getCategoria() != null) {
+            Categoria categoria = categoriaRepositorio.findById(nuevo.getCategoria().getId_categoria()).orElse(null);
+            nuevo.setCategoria(categoria);
+        }
+        Producto saved = productoRepositorio.save(nuevo);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
 
-	/**
-	 * Borra un producto del catálogo en base a su id
-	 * @param id
-	 * @return
-	 */
-	@DeleteMapping("/producto/{id}")
-	public Producto borrarProducto(@PathVariable Long id) {
-		if (productoRepositorio.existsById(id)) {
-			Producto result = productoRepositorio.findById(id).get();
-			productoRepositorio.deleteById(id);
-			return result;
-		} else
-			return null;
-	}
+    @PutMapping("/producto/{id}")
+    public ResponseEntity<?> editarProducto(@RequestBody Producto editar, @PathVariable Long id) {
+        return productoRepositorio.findById(id)
+                .map(producto -> {
+                    if (productoRepositorio.existsById(id)) {
+                        editar.setId_producto(id);
+                        Producto updatedProducto = productoRepositorio.save(editar);
+                        return ResponseEntity.ok(updatedProducto);
+                    } else {
+                        return ResponseEntity.notFound().build();
+                    }
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/producto/{id}")
+    public ResponseEntity<?> borrarProducto(@PathVariable Long id) {
+        return productoRepositorio.findById(id)
+                .map(producto -> {
+                    productoRepositorio.deleteById(id);
+                    return ResponseEntity.noContent().build();
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 
 }
